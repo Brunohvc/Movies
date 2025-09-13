@@ -2,14 +2,7 @@ import * as fs from 'fs';
 import csv from 'csv-parser';
 import { CsvReader } from '../../domain/interfaces/CsvReader';
 import { Movie } from '../../domain/entities/Movie';
-
-interface CsvRow {
-  year: string;
-  title: string;
-  studios: string;
-  producers: string;
-  winner: string;
-}
+import { CsvRow } from '../../shared/types';
 
 export class CsvReaderService implements CsvReader {
   async readMovies(filePath: string): Promise<Movie[]> {

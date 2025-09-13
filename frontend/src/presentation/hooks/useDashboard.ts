@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { MovieService } from '../../application/services/MovieService';
 import {
   YearsWithMultipleWinnersResponse,
@@ -15,9 +15,9 @@ export const useDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const movieService = new MovieService();
+  const movieService = useMemo(() => new MovieService(), []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -35,9 +35,9 @@ export const useDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [movieService]);
 
-  const fetchWinnersByYear = async (year: number) => {
+  const fetchWinnersByYear = useCallback(async (year: number) => {
     try {
       const winners = await movieService.dashboard.getWinnersByYear(year);
       setWinnersByYear(winners);
@@ -45,11 +45,11 @@ export const useDashboard = () => {
       console.error('Error fetching winners by year:', err);
       setWinnersByYear([]);
     }
-  };
+  }, [movieService]);
 
-  const clearWinnersByYear = () => {
+  const clearWinnersByYear = useCallback(() => {
     setWinnersByYear([]);
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();

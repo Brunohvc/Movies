@@ -88,10 +88,9 @@ export const MovieFilters: React.FC<Props> = ({ onFiltersChange, onClearFilters,
   const [lastAppliedFilters, setLastAppliedFilters] = useState<string>('');
   const debounceTimer = useRef<number | null>(null);
 
-  // Função para criar os filtros baseado nos valores atuais
   const createFilters = (yearValue: string, winnerValue: string): Filters => {
     const filters: Filters = {
-      page: 0, // Reset para primeira página ao aplicar filtros
+      page: 0,
     };
 
     if (yearValue) {
@@ -108,17 +107,13 @@ export const MovieFilters: React.FC<Props> = ({ onFiltersChange, onClearFilters,
     return filters;
   };
 
-  // Debouncing effect - 750ms delay
   useEffect(() => {
-    // Clear existing timer
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    // Create a string representation of current filters for comparison
     const currentFiltersString = `${year}-${winner}`;
 
-    // If both fields are empty, clear results
     if (year.trim() === '' && winner === '') {
       if (hasAppliedFilters) {
         setHasAppliedFilters(false);
@@ -132,23 +127,19 @@ export const MovieFilters: React.FC<Props> = ({ onFiltersChange, onClearFilters,
       return;
     }
 
-    // Only apply filters if they have changed and are different from last applied
-    if (currentFiltersString !== lastAppliedFilters) {
-      debounceTimer.current = setTimeout(() => {
-        const filters = createFilters(year, winner);
-        onFiltersChange(filters);
-        setHasAppliedFilters(true);
-        setLastAppliedFilters(currentFiltersString);
-      }, 750);
-    }
+    debounceTimer.current = setTimeout(() => {
+      const filters = createFilters(year, winner);
+      onFiltersChange(filters);
+      setHasAppliedFilters(true);
+      setLastAppliedFilters(currentFiltersString);
+    }, 750);
 
-    // Cleanup function
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [year, winner, lastAppliedFilters, hasAppliedFilters, onFiltersChange, onClearFilters]);
+  }, [year, winner]);
 
   const handleApplyFilters = () => {
     const filters = createFilters(year, winner);

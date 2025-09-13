@@ -1,24 +1,25 @@
 import request from 'supertest';
-import { DataSource } from 'typeorm';
 import express from 'express';
-import { AppDataSource } from '../../src/infrastructure/database/DataSource';
-import { TypeOrmMovieRepository } from '../../src/infrastructure/repositories/TypeOrmMovieRepository';
-import { MovieEntity } from '../../src/infrastructure/database/entities/MovieEntity';
+import { AppDataSource, InMemoryDataSource } from '../../src/infrastructure/database/DataSource';
+import { InMemoryMovieRepository } from '../../src/infrastructure/repositories/InMemoryMovieRepository';
 import { Movie } from '../../src/domain/entities/Movie';
 import { GetProducerIntervalsUseCase } from '../../src/application/usecases/GetProducerIntervalsUseCase';
 import { ProducerController } from '../../src/presentation/controllers/ProducerController';
 import { ProducerRoutes } from '../../src/presentation/routes/ProducerRoutes';
 import { ErrorHandler } from '../../src/presentation/middlewares/ErrorHandler';
+import { CsvReaderService } from '../../src/infrastructure/services/CsvReaderService';
+import { LoadMoviesFromCsvUseCase } from '../../src/application/usecases/LoadMoviesFromCsvUseCase';
+import * as path from 'path';
 
 describe('Producer Intervals Integration Tests', () => {
   let app: express.Application;
-  let dataSource: DataSource;
-  let repository: TypeOrmMovieRepository;
+  let dataSource: InMemoryDataSource;
+  let repository: InMemoryMovieRepository;
 
   beforeAll(async () => {
     dataSource = AppDataSource;
     await dataSource.initialize();
-    repository = new TypeOrmMovieRepository(dataSource.getRepository(MovieEntity));
+    repository = new InMemoryMovieRepository(dataSource);
     
     app = express();
     app.use(express.json());
@@ -65,26 +66,12 @@ describe('Producer Intervals Integration Tests', () => {
       });
     });
 
-    it('should return correct intervals based on CSV data structure', async () => {
-
-      const testMovies = [
-        new Movie(1980, "Can't Stop the Music", "Associated Film Distribution", "Allan Carr", true),
-        new Movie(1981, "Mommie Dearest", "Paramount Pictures", "Frank Yablans", true),
-        new Movie(1982, "Inchon", "MGM", "Mitsuharu Ishii", true),
-        new Movie(1983, "The Lonely Lady", "Universal Studios", "Robert R. Weston", true),
-        new Movie(1984, "Bolero", "Cannon Films", "Bo Derek", true),
-        new Movie(1985, "Rambo: First Blood Part II", "Columbia Pictures", "Buzz Feitshans", true),
-        new Movie(1986, "Howard the Duck", "Universal Studios", "Gloria Katz", true),
-        new Movie(1986, "Under the Cherry Moon", "Warner Bros.", "Bob Cavallo, Joe Ruffalo and Steve Fargnoli", true),
-        new Movie(1987, "Leonard Part 6", "Columbia Pictures", "Bill Cosby", true),
-        new Movie(1990, "The Adventures of Ford Fairlane", "20th Century Fox", "Steven Perry and Joel Silver", true),
-        new Movie(1990, "Ghosts Can't Do It", "Triumph Releasing", "Bo Derek", true),
-        new Movie(1999, "Wild Wild West", "Warner Bros.", "Jon Peters and Barry Sonnenfeld", true),
-        new Movie(2002, "Swept Away", "Screen Gems", "Matthew Vaughn", true),
-        new Movie(2008, "The Love Guru", "Paramount Pictures", "Gary Barber, Michael DeLuca and Mike Myers", true),
-      ];
-
-      await repository.saveAll(testMovies);
+    it('should return correct intervals based on actual CSV data', async () => {
+      const csvReader = new CsvReaderService();
+      const loadMoviesUseCase = new LoadMoviesFromCsvUseCase(repository, csvReader);
+      const csvPath = path.join(__dirname, '..', '..', 'data', 'movielist.csv');
+      
+      await loadMoviesUseCase.execute(csvPath);
 
       const response = await request(app)
         .get('/api/producers/intervals')
@@ -94,12 +81,21 @@ describe('Producer Intervals Integration Tests', () => {
       expect(response.body).toHaveProperty('max');
       expect(Array.isArray(response.body.min)).toBe(true);
       expect(Array.isArray(response.body.max)).toBe(true);
-      const allIntervals = [...response.body.min, ...response.body.max];
-      const boDerekInterval = allIntervals.find((interval: any) => interval.producer === 'Bo Derek');
-      expect(boDerekInterval).toBeDefined();
-      expect(boDerekInterval.interval).toBe(6);
-      expect(boDerekInterval.previousWin).toBe(1984);
-      expect(boDerekInterval.followingWin).toBe(1990);
+      
+      expect(response.body.min.length).toBe(1);
+      expect(response.body.max.length).toBe(1);
+      
+      const minInterval = response.body.min[0];
+      expect(minInterval.producer).toBe('Joel Silver');
+      expect(minInterval.interval).toBe(1);
+      expect(minInterval.previousWin).toBe(1990);
+      expect(minInterval.followingWin).toBe(1991);
+      
+      const maxInterval = response.body.max[0];
+      expect(maxInterval.producer).toBe('Matthew Vaughn');
+      expect(maxInterval.interval).toBe(13);
+      expect(maxInterval.previousWin).toBe(2002);
+      expect(maxInterval.followingWin).toBe(2015);
     });
 
     it('should handle producers with multiple wins correctly', async () => {

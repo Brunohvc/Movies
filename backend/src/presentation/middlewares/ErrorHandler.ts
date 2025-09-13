@@ -1,8 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-
-export interface ApiError extends Error {
-  statusCode?: number;
-}
+import { ApiError } from '../../shared/types';
 
 export class ErrorHandler {
   static handle(error: ApiError, req: Request, res: Response, next: NextFunction): void {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { Layout } from '../../components/Layout';
 import { MovieTable } from '../../components/Movies/MovieTable';
@@ -53,32 +53,32 @@ export const Movies: React.FC = () => {
     size: DEFAULT_PAGE_SIZE,
   });
 
-  const { movies, loading, error, refetch } = useMovies(filters);
+  const { movies, loading, error, refetch } = useMovies();
 
   useEffect(() => {
     refetch(filters);
   }, [filters]);
 
-  const handleFiltersChange = (newFilters: Filters) => {
+  const handleFiltersChange = useCallback((newFilters: Filters) => {
     setFilters({
       ...newFilters,
       size: DEFAULT_PAGE_SIZE,
     });
-  };
+  }, []);
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     setFilters(prev => ({
       ...prev,
       page,
     }));
-  };
+  }, []);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFilters({
       page: 0,
       size: DEFAULT_PAGE_SIZE,
     });
-  };
+  }, []);
 
   return (
     <Layout>

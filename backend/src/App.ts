@@ -3,22 +3,21 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { DataSource } from 'typeorm';
-import { TypeOrmMovieRepository } from './infrastructure/repositories/TypeOrmMovieRepository';
+import { InMemoryDataSource } from './infrastructure/database/DataSource';
+import { InMemoryMovieRepository } from './infrastructure/repositories/InMemoryMovieRepository';
 import { CsvReaderService } from './infrastructure/services/CsvReaderService';
 import { GetProducerIntervalsUseCase } from './application/usecases/GetProducerIntervalsUseCase';
 import { LoadMoviesFromCsvUseCase } from './application/usecases/LoadMoviesFromCsvUseCase';
 import { ProducerController } from './presentation/controllers/ProducerController';
 import { ProducerRoutes } from './presentation/routes/ProducerRoutes';
 import { ErrorHandler } from './presentation/middlewares/ErrorHandler';
-import { MovieEntity } from './infrastructure/database/entities/MovieEntity';
 import * as path from 'path';
 
 export class App {
   private app: express.Application;
-  private dataSource: DataSource;
+  private dataSource: InMemoryDataSource;
 
-  constructor(dataSource: DataSource) {
+  constructor(dataSource: InMemoryDataSource) {
     this.app = express();
     this.dataSource = dataSource;
     this.setupMiddlewares();
@@ -37,7 +36,7 @@ export class App {
       res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
     });
 
-    const movieRepository = new TypeOrmMovieRepository(this.dataSource.getRepository(MovieEntity));
+    const movieRepository = new InMemoryMovieRepository(this.dataSource);
     const getProducerIntervalsUseCase = new GetProducerIntervalsUseCase(movieRepository);
     const producerController = new ProducerController(getProducerIntervalsUseCase);
     const producerRoutes = new ProducerRoutes(producerController);
@@ -71,7 +70,7 @@ export class App {
 
   private async loadInitialData(): Promise<void> {
     try {
-      const movieRepository = new TypeOrmMovieRepository(this.dataSource.getRepository(MovieEntity));
+      const movieRepository = new InMemoryMovieRepository(this.dataSource);
       const csvReader = new CsvReaderService();
       const loadMoviesUseCase = new LoadMoviesFromCsvUseCase(movieRepository, csvReader);
 

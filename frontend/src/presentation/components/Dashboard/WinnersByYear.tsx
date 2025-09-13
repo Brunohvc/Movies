@@ -119,14 +119,11 @@ export const WinnersByYearCard: React.FC<Props> = ({ data, onSearch, onClear, lo
   const [lastSearchedYear, setLastSearchedYear] = useState<string>('');
   const debounceTimer = useRef<number | null>(null);
 
-  // Debouncing effect - 750ms delay
   useEffect(() => {
-    // Clear existing timer
     if (debounceTimer.current) {
       clearTimeout(debounceTimer.current);
     }
 
-    // If field is empty, clear results
     if (year.trim() === '') {
       setHasSearched(false);
       setLastSearchedYear('');
@@ -136,25 +133,21 @@ export const WinnersByYearCard: React.FC<Props> = ({ data, onSearch, onClear, lo
       return;
     }
 
-    // Only search if the year has changed and is different from last searched
-    if (year !== lastSearchedYear) {
-      debounceTimer.current = setTimeout(() => {
-        const yearNumber = parseInt(year);
-        if (yearNumber && yearNumber > 1900 && yearNumber <= new Date().getFullYear()) {
-          onSearch(yearNumber);
-          setHasSearched(true);
-          setLastSearchedYear(year);
-        }
-      }, 750);
-    }
+    debounceTimer.current = setTimeout(() => {
+      const yearNumber = parseInt(year);
+      if (yearNumber && yearNumber > 1900 && yearNumber <= new Date().getFullYear()) {
+        onSearch(yearNumber);
+        setHasSearched(true);
+        setLastSearchedYear(year);
+      }
+    }, 750);
 
-    // Cleanup function
     return () => {
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
     };
-  }, [year, lastSearchedYear, onSearch, onClear]);
+  }, [year]);
 
   const handleSearch = () => {
     const yearNumber = parseInt(year);
